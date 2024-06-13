@@ -11,34 +11,11 @@ val VERSION_NAME: String by project
 group = GROUP
 version = VERSION_NAME
 
-tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions.allWarningsAsErrors = true
-}
-
-rootProject.plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootPlugin> {
-    rootProject.the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsRootExtension>().nodeVersion = "16.0.0"
-}
-
 kotlin {
-    infra {
-        target("macosX64")
-        target("macosArm64")
-        target("linuxX64")
-        target("mingwX64")
-    }
-
-    js(IR) {
-        moduleName = "${rootProject.name}-${project.name}"
-        nodejs {
-        }
-        compilations.all {
-            kotlinOptions {
-                sourceMap = true
-                moduleKind = "umd"
-                metaInfo = true
-            }
-        }
-    }
+    macosX64()
+    macosArm64()
+    mingwX64()
+    linuxX64()
 
     jvm()
 
@@ -63,17 +40,6 @@ kotlin {
         val jvmTest by getting {
             dependencies {
                 implementation(kotlin("test-junit"))
-            }
-        }
-        val jsMain by getting {
-            dependencies {
-                implementation(kotlin("stdlib-js"))
-            }
-        }
-        // JS-specific tests and their dependencies:
-        val jsTest by getting {
-            dependencies {
-                implementation(kotlin("test-js"))
             }
         }
     }

@@ -9,18 +9,7 @@ buildscript {
 }
 
 plugins {
-    id("kotlinx.team.infra")
-}
-
-infra {
-    teamcity {
-        libraryStagingRepoDescription = project.name
-    }
-    publishing {
-        include(":kotlinx-cli")
-        libraryRepoUrl = "https://github.com/Kotlin/kotlinx-cli"
-        sonatype {}
-    }
+    alias(libs.plugins.maven.publish) apply false
 }
 
 allprojects {

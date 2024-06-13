@@ -1,6 +1,6 @@
 [versions]
 # Dependencies
-kotlin = "1.9.10"
+kotlin = "1.9.24"
 mavenPublish = "0.26.0"
 
 [libraries]
