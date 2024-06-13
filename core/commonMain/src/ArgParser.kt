@@ -103,7 +103,8 @@ open class ArgParser(
     var useDefaultHelpShortName: Boolean = true,
     var prefixStyle: OptionPrefixStyle = OptionPrefixStyle.LINUX,
     var skipExtraArguments: Boolean = false,
-    var strictSubcommandOptionsOrder: Boolean = false
+    var strictSubcommandOptionsOrder: Boolean = false,
+    exitProcessCall: (Int)->Nothing = { exitProcess(it) }
 ) {
 
     /**
@@ -178,7 +179,7 @@ open class ArgParser(
 
     internal var outputAndTerminate: (message: String, exitCode: Int) -> Nothing = { message, exitCode ->
         println(message)
-        exitProcess(exitCode)
+        exitProcessCall(exitCode)
     }
 
     /**
