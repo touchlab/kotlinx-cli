@@ -71,7 +71,7 @@ interface ArgumentValueDelegate<T> {
  * Abstract base class for subcommands.
  */
 @ExperimentalCli
-abstract class Subcommand(val name: String, val actionDescription: String): ArgParser(name) {
+abstract class Subcommand(val name: String, val actionDescription: String) : ArgParser(name) {
     /**
      * Execute action if subcommand was provided.
      */
@@ -104,13 +104,17 @@ open class ArgParser(
     var prefixStyle: OptionPrefixStyle = OptionPrefixStyle.LINUX,
     var skipExtraArguments: Boolean = false,
     var strictSubcommandOptionsOrder: Boolean = false,
-    exitProcessCall: (Int)->Nothing = { exitProcess(it) }
+    internal var outputAndTerminate: (message: String, exitCode: Int) -> Nothing = { message, exitCode ->
+        println(message)
+        exitProcess(exitCode)
+    }
 ) {
 
     /**
      * Map of options: key - full name of option, value - pair of descriptor and parsed values.
      */
     private val options = mutableMapOf<String, ParsingValue<*, *>>()
+
     /**
      * Map of arguments: key - full name of argument, value - pair of descriptor and parsed values.
      */
@@ -177,10 +181,6 @@ open class ArgParser(
      */
     private var usedSubcommand: Subcommand? = null
 
-    internal var outputAndTerminate: (message: String, exitCode: Int) -> Nothing = { message, exitCode ->
-        println(message)
-        exitProcessCall(exitCode)
-    }
 
     /**
      * The way an option/argument has got its value.
@@ -188,12 +188,16 @@ open class ArgParser(
     enum class ValueOrigin {
         /* The value was parsed from command line arguments. */
         SET_BY_USER,
+
         /* The value was missing in command line, therefore the default value was used. */
         SET_DEFAULT_VALUE,
+
         /* The value is not initialized by command line values or  by default values. */
         UNSET,
+
         /* The value was redefined after parsing manually (usually with the property setter). */
         REDEFINED,
+
         /* The value is undefined, because parsing wasn't called. */
         UNDEFINED
     }
@@ -204,8 +208,10 @@ open class ArgParser(
     enum class OptionPrefixStyle {
         /* Linux style: the full name of an option is prefixed with two hyphens "--" and the short name — with one "-". */
         LINUX,
+
         /* JVM style: both full and short names are prefixed with one hyphen "-". */
         JVM,
+
         /* GNU style: the full name of an option is prefixed with two hyphens "--" and "=" between options and value
          and the short name — with one "-".
          Detailed information https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
@@ -213,8 +219,10 @@ open class ArgParser(
         GNU
     }
 
-    @Deprecated("OPTION_PREFIX_STYLE is deprecated. Please, use OptionPrefixStyle.",
-        ReplaceWith("OptionPrefixStyle", "kotlinx.cli.OptionPrefixStyle"))
+    @Deprecated(
+        "OPTION_PREFIX_STYLE is deprecated. Please, use OptionPrefixStyle.",
+        ReplaceWith("OptionPrefixStyle", "kotlinx.cli.OptionPrefixStyle")
+    )
     @Suppress("TOPLEVEL_TYPEALIASES_ONLY")
     typealias OPTION_PREFIX_STYLE = OptionPrefixStyle
 
@@ -244,7 +252,7 @@ open class ArgParser(
     fun <T : Any> option(
         type: ArgType<T>,
         fullName: String? = null,
-        shortName: String ? = null,
+        shortName: String? = null,
         description: String? = null,
         deprecatedWarning: String? = null
     ): SingleNullableOption<T> {
@@ -255,8 +263,12 @@ open class ArgParser(
                 For more information, please, see https://www.gnu.org/software/libc/manual/html_node/Argument-Syntax.html
                 """.trimIndent()
             }
-        val option = SingleNullableOption(OptionDescriptor(optionFullFormPrefix, optionShortFromPrefix, type,
-                fullName, shortName, description, deprecatedWarning = deprecatedWarning), CLIEntityWrapper())
+        val option = SingleNullableOption(
+            OptionDescriptor(
+                optionFullFormPrefix, optionShortFromPrefix, type,
+                fullName, shortName, description, deprecatedWarning = deprecatedWarning
+            ), CLIEntityWrapper()
+        )
         option.owner.entity = option
         declaredOptions.add(option.owner)
         return option
@@ -273,15 +285,19 @@ open class ArgParser(
                 // Previous argument has default value.
                 if (previous.descriptor.defaultValueSet) {
                     if (!currentArgument.descriptor.defaultValueSet && currentArgument.descriptor.required) {
-                        error("Default value of argument ${previous.descriptor.fullName} will be unused,  " +
-                                "because next argument ${currentArgument.descriptor.fullName} is always required and has no default value.")
+                        error(
+                            "Default value of argument ${previous.descriptor.fullName} will be unused,  " +
+                                    "because next argument ${currentArgument.descriptor.fullName} is always required and has no default value."
+                        )
                     }
                 }
                 // Previous argument is optional.
                 if (!previous.descriptor.required) {
                     if (!currentArgument.descriptor.defaultValueSet && currentArgument.descriptor.required) {
-                        error("Argument ${previous.descriptor.fullName} will be always required, " +
-                                "because next argument ${currentArgument.descriptor.fullName} is always required.")
+                        error(
+                            "Argument ${previous.descriptor.fullName} will be always required, " +
+                                    "because next argument ${currentArgument.descriptor.fullName} is always required."
+                        )
                     }
                 }
             }
@@ -316,9 +332,13 @@ open class ArgParser(
         fullName: String? = null,
         description: String? = null,
         deprecatedWarning: String? = null
-    ) : SingleArgument<T, DefaultRequiredType.Required> {
-        val argument = SingleArgument<T, DefaultRequiredType.Required>(ArgDescriptor(type, fullName, 1,
-                description, deprecatedWarning = deprecatedWarning), CLIEntityWrapper())
+    ): SingleArgument<T, DefaultRequiredType.Required> {
+        val argument = SingleArgument<T, DefaultRequiredType.Required>(
+            ArgDescriptor(
+                type, fullName, 1,
+                description, deprecatedWarning = deprecatedWarning
+            ), CLIEntityWrapper()
+        )
         argument.owner.entity = argument
         declaredArguments.add(argument.owner)
         return argument
@@ -392,7 +412,7 @@ open class ArgParser(
     /**
      * Save value as option value.
      */
-    private fun <T : Any, U: Any> saveAsOption(parsingValue: ParsingValue<T, U>, value: String) {
+    private fun <T : Any, U : Any> saveAsOption(parsingValue: ParsingValue<T, U>, value: String) {
         parsingValue.addValue(value)
     }
 
@@ -480,7 +500,8 @@ open class ArgParser(
      */
     private fun recognizeAndSaveOptionShortForm(candidate: String, argIterator: Iterator<String>): Boolean {
         if (!candidate.startsWith(optionShortFromPrefix) ||
-            optionFullFormPrefix != optionShortFromPrefix && candidate.startsWith(optionFullFormPrefix)) return false
+            optionFullFormPrefix != optionShortFromPrefix && candidate.startsWith(optionFullFormPrefix)
+        ) return false
         // Try to find exact match.
         val option = candidate.substring(optionShortFromPrefix.length)
         val argValue = shortNames[option]
@@ -508,7 +529,7 @@ open class ArgParser(
                                         "provided for current option."
                             )
                         }
-                    }?: printError("Unknown option $optionShortFromPrefix$opt in option combination $candidate.")
+                    } ?: printError("Unknown option $optionShortFromPrefix$opt in option combination $candidate.")
 
                     saveOptionWithoutParameter(shortNames["$opt"]!!)
                 }
